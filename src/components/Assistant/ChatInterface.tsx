@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Sparkles, BookOpen, AlertCircle, Wrench, Calendar, Loader2 } from 'lucide-react';
+import { Send, Bot, User, Sparkles, BookOpen, AlertCircle, Wrench, Loader2 } from 'lucide-react';
 import { CityAirData, UserFamilyProfile } from '../../types/aqi';
 import { ChatMessage, QuickPrompt } from '../../types/chat';
 import { askAeroPulseAssistant } from '../../services/aiService';

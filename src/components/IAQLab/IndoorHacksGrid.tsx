@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  Sparkles, 
-  HelpCircle, 
   CheckCircle, 
   AlertTriangle, 
-  FlaskConical, 
-  DollarSign, 
-  Tag 
+  FlaskConical 
 } from 'lucide-react';
 import { INDOOR_AIR_HACKS } from '../../data/hacksData';
-import { IAQHack } from '../../types/iaq';
 
 export const IndoorHacksGrid: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');

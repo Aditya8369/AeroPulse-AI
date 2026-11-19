@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Key, X, Check, ExternalLink, ShieldAlert } from 'lucide-react';
+import { Key, X, Check, ExternalLink } from 'lucide-react';
 import { isValidApiKey } from '../../utils/sanitize';
 
 interface ApiKeyModalProps {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wrench, CheckCircle, HelpCircle, DollarSign, Volume2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Wrench, DollarSign, ShieldCheck } from 'lucide-react';
 import { calculateCorsiRosenthalBox } from '../../services/impactCalculator';
 import { CorsiRosenthalParams } from '../../types/iaq';
 

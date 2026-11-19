@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShieldAlert, AlertTriangle, Cigarette, Layers, Flame, Info } from 'lucide-react';
+import { Cigarette, Layers } from 'lucide-react';
 import { CityAirData } from '../../types/aqi';
 import { getAQIColorBlindSafeClass } from '../../utils/a11y';
 import { calculateCigaretteEquivalence } from '../../services/impactCalculator';

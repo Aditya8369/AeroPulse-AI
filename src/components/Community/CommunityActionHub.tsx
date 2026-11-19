@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
 import { 
-  Users, 
   Flame, 
-  Building2, 
   ThumbsUp, 
-  PlusCircle, 
   AlertTriangle, 
-  CheckCircle, 
   ShieldCheck, 
-  MapPin, 
-  Calendar 
+  MapPin 
 } from 'lucide-react';
 import { CommunityPledge, CommunityReport } from '../../types/impact';
 import { INITIAL_COMMUNITY_PLEDGES, INITIAL_COMMUNITY_REPORTS } from '../../data/communityPledges';
