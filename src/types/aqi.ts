@@ -16,12 +16,14 @@ export interface PollutantValues {
   so2: number;       // ppb
 }
 
+export type InversionStrength = 'High' | 'Moderate' | 'Low' | 'Lifted';
+
 export interface DiurnalHourlyPrediction {
   hour: number;          // 0-23
   label: string;         // e.g. "6 AM"
   predictedPM25: number; // estimated PM2.5 in µg/m³
   aqi: number;
-  inversionStrength: 'High' | 'Moderate' | 'Low' | 'Lifted'; // Thermal inversion layer trapping
+  inversionStrength: InversionStrength;
   isVentilationSafe: boolean;
   activityRecommendation: string;
 }
@@ -37,7 +39,7 @@ export interface CityAirData {
   humidityPercent: number;
   windSpeedKmh: number;
   inversionLayerActive: boolean;
-  thermalInversionHeightMeters: number; // e.g. 150m in severe winter vs 1200m in summer
+  thermalInversionHeightMeters: number; // e.g. 140m in severe winter vs 1200m in summer
   hourlyForecast: DiurnalHourlyPrediction[];
   dominantPollutant: 'PM2.5' | 'PM10' | 'NO2';
   updatedAt: string;
@@ -53,14 +55,41 @@ export type VulnerabilityGroup =
   | 'Active Outdoor Commuter'
   | 'Pet Owner';
 
+export type HousingType = 
+  | 'Apartment' 
+  | 'Independent House' 
+  | 'Basement' 
+  | 'High-Rise (Floor 10+)';
+
+export type HeatingType = 
+  | 'Electric Heat Pump' 
+  | 'Radiator (Hydronic)' 
+  | 'Open Coil Space Heater' 
+  | 'Gas / Kerosene Heater' 
+  | 'Biomass / Wood Stove';
+
+export type CookingFuel = 
+  | 'Induction / Electric' 
+  | 'Piped Natural Gas' 
+  | 'LPG Cylinder' 
+  | 'Solid Fuel / Coal';
+
+export type CommuteMode = 
+  | 'Metro / Train' 
+  | 'Bus' 
+  | 'Gas/Diesel Car' 
+  | 'Two-Wheeler (Motorcycle/Scooter)' 
+  | 'Bicycle / Walking' 
+  | 'Work from Home';
+
 export interface UserFamilyProfile {
   cityId: string;
   customLocation?: string;
   householdMembers: VulnerabilityGroup[];
-  housingType: 'Apartment' | 'Independent House' | 'High-Rise (Floor 6+)' | 'Ground Floor';
-  heatingType: 'Electric Heat Pump' | 'Radiator/Central' | 'Gas Heater' | 'Biomass/Wood Stove' | 'None/Portable';
-  cookingFuel: 'Induction/Electric' | 'Piped Natural Gas' | 'LPG Cylinder' | 'Biomass/Chulha';
-  commuteMode: 'Electric Metro/Rail' | 'EV Car' | 'Bus/Public Transit' | 'Gas/Diesel Car' | 'Motorbike/Scooter' | 'Bicycle/Walking';
+  housingType: HousingType;
+  heatingType: HeatingType;
+  cookingFuel: CookingFuel;
+  commuteMode: CommuteMode;
   hasAirPurifier: boolean;
   purifierCount: number;
 }

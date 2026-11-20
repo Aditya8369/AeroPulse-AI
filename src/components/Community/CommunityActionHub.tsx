@@ -8,7 +8,7 @@ import {
   X,
   Check
 } from 'lucide-react';
-import { CommunityPledge, CommunityReport } from '../../types/impact';
+import { CommunityPledge, CommunityReport, CommunityReportType } from '../../types/impact';
 import { INITIAL_COMMUNITY_PLEDGES, INITIAL_COMMUNITY_REPORTS } from '../../data/communityPledges';
 import { CityAirData } from '../../types/aqi';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../../utils/storage';
@@ -18,6 +18,14 @@ import { announceToScreenReader } from '../../utils/a11y';
 interface CommunityActionHubProps {
   cityData: CityAirData;
 }
+
+const REPORT_TYPE_OPTIONS: readonly { value: CommunityReportType; label: string }[] = [
+  { value: 'Open Biomass/Stubble Burning', label: 'Open Biomass or Leaf Pile Burning' },
+  { value: 'Municipal Waste Incineration', label: 'Municipal Garbage / Plastic Waste Burning' },
+  { value: 'Construction Dust Plume', label: 'Uncovered Construction & Demolition Dust' },
+  { value: 'Industrial Smoke', label: 'Illegal Dark Industrial Smoke' },
+  { value: 'Idling Heavy Vehicles', label: 'Commercial Heavy Vehicle Idling Cluster' },
+] as const;
 
 export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData }) => {
   const [pledges, setPledges] = useState<CommunityPledge[]>(() => 
@@ -33,7 +41,7 @@ export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData
   const [showReportModal, setShowReportModal] = useState(false);
 
   // New report form state
-  const [newType, setNewType] = useState<CommunityReport['type']>('Open Biomass/Stubble Burning');
+  const [newType, setNewType] = useState<CommunityReportType>('Open Biomass/Stubble Burning');
   const [newLocation, setNewLocation] = useState('');
   const [newNotes, setNewNotes] = useState('');
 
@@ -61,7 +69,7 @@ export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData
     });
 
     setPledges(updated);
-    setSupportedPledges({ ...supportedPledges, [pledgeId]: !isSupported });
+    setSupportedPledges(prev => ({ ...prev, [pledgeId]: !isSupported }));
     safeLocalStorageSet('aeropulse_pledges', updated);
     announceToScreenReader(isSupported ? 'Withdrew support from pledge.' : 'Joined community pledge.');
   };
@@ -79,7 +87,7 @@ export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData
     });
 
     setReports(updated);
-    setUpvotedReports({ ...upvotedReports, [reportId]: !isUpvoted });
+    setUpvotedReports(prev => ({ ...prev, [reportId]: !isUpvoted }));
     safeLocalStorageSet('aeropulse_reports', updated);
     announceToScreenReader(isUpvoted ? 'Removed verification vote.' : 'Verified community smoke report.');
   };
@@ -315,14 +323,12 @@ export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData
                 <select
                   id="report-type-select"
                   value={newType}
-                  onChange={(e) => setNewType(e.target.value as CommunityReport['type'])}
+                  onChange={(e) => setNewType(e.target.value as CommunityReportType)}
                   className="w-full text-xs p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
-                  <option value="Open Biomass/Stubble Burning">Open Biomass or Leaf Pile Burning</option>
-                  <option value="Municipal Waste Incineration">Municipal Garbage / Plastic Waste Burning</option>
-                  <option value="Uncovered Construction Dust">Uncovered Construction & Demolition Dust</option>
-                  <option value="Industrial Smoke">Illegal Dark Industrial Smoke</option>
-                  <option value="Idling Heavy Vehicles">Commercial Heavy Vehicle Idling Cluster</option>
+                  {REPORT_TYPE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -338,8 +344,7 @@ export const CommunityActionHub: React.FC<CommunityActionHubProps> = ({ cityData
                   value={newLocation}
                   onChange={(e) => setNewLocation(e.target.value)}
                   className="w-full text-xs p-2.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
-                >
-                </input>
+                />
               </div>
 
               <div>

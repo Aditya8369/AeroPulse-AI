@@ -7,17 +7,35 @@ export interface ImpactMetrics {
   healthRiskReductionSummary: string;
 }
 
+export type CommunityReportType = 
+  | 'Open Biomass/Stubble Burning' 
+  | 'Construction Dust Plume' 
+  | 'Municipal Waste Incineration' 
+  | 'Industrial Smoke' 
+  | 'Idling Heavy Vehicles';
+
+export type CommunityReportStatus = 
+  | 'Verified' 
+  | 'Investigating' 
+  | 'Reported to Municipality';
+
 export interface CommunityReport {
   id: string;
-  type: 'Open Biomass/Stubble Burning' | 'Construction Dust Plume' | 'Garbage Incineration' | 'Industrial Smoke' | 'Idling Heavy Vehicles';
+  type: CommunityReportType;
   locationDescription: string;
   latitude?: number;
   longitude?: number;
   timestamp: string;
-  status: 'Verified' | 'Investigating' | 'Reported to Municipality';
+  status: CommunityReportStatus;
   upvotes: number;
   notes: string;
 }
+
+export type PledgeCategory = 
+  | 'Clean Transit' 
+  | 'No Open Fires' 
+  | 'Green School Run' 
+  | 'Shared DIY Purifiers';
 
 export interface CommunityPledge {
   id: string;
@@ -25,5 +43,5 @@ export interface CommunityPledge {
   description: string;
   supportersCount: number;
   estimatedCommunityPM25ReductionKgPerWeek: number;
-  category: 'Clean Transit' | 'No Open Fires' | 'Green School Run' | 'Shared DIY Purifiers';
+  category: PledgeCategory;
 }

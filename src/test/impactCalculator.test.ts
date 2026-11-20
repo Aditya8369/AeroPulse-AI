@@ -13,9 +13,11 @@ describe('impactCalculator tests', () => {
     expect(calculateCigaretteEquivalence(22)).toBe(1.0);
     // 220 µg/m³ = 10.0 cigarettes
     expect(calculateCigaretteEquivalence(220)).toBe(10.0);
-    // 0 or negative = 0
+    // 0, negative, NaN or Infinity = 0
     expect(calculateCigaretteEquivalence(0)).toBe(0);
     expect(calculateCigaretteEquivalence(-10)).toBe(0);
+    expect(calculateCigaretteEquivalence(NaN)).toBe(0);
+    expect(calculateCigaretteEquivalence(Infinity)).toBe(0);
   });
 
   it('calculates inhaled dose with different breathing intensity levels', () => {
@@ -35,6 +37,10 @@ describe('impactCalculator tests', () => {
     // Heavy exercise rate = 3.2, 1 hour, 100 µg/m³ = 320
     const heavyDose = calculateInhaledDose(100, 1, 'heavy');
     expect(heavyDose).toBe(320);
+
+    // Invalid parameters guard
+    expect(calculateInhaledDose(-50, 2, 'light')).toBe(0);
+    expect(calculateInhaledDose(100, -1, 'light')).toBe(0);
   });
 
   it('evaluates standard 4-filter MERV 13 Corsi-Rosenthal Box specifications', () => {
@@ -88,7 +94,23 @@ describe('impactCalculator tests', () => {
     expect(resultMerv14.estimatedActualCADR_CFM).toBe(456);
   });
 
-  it('aggregates daily impact for adopted routines', () => {
+  it('identifies undersized units when room volume is excessively large', () => {
+    // Large hall: 50 * 50 * 15 = 37,500 cu ft; at 5 ACH, required CADR = 3,125 CFM
+    const oversizedRoom = calculateCorsiRosenthalBox({
+      roomLengthFeet: 50,
+      roomWidthFeet: 50,
+      roomHeightFeet: 15,
+      targetACH: 5,
+      fanDiameterInches: 20,
+      filterCount: 4,
+      mervRating: 13
+    });
+
+    expect(oversizedRoom.isSufficient).toBe(false);
+    expect(oversizedRoom.requiredCADR_CFM).toBeGreaterThan(oversizedRoom.estimatedActualCADR_CFM);
+  });
+
+  it('aggregates daily impact for adopted routines and sets clinical risk reduction summaries', () => {
     const mockActivities: ScheduledActivity[] = [
       {
         id: '1',
@@ -114,6 +136,17 @@ describe('impactCalculator tests', () => {
       },
       {
         id: '3',
+        timeSlot: '12:00 - 13:00',
+        activityName: 'Lunch Walk Timing',
+        defaultHabit: 'Walk near busy ring road',
+        recommendedAlternative: 'Park walk during solar lift',
+        exposureReductionPercentage: 60,
+        emissionReductionGramsCO2: 100,
+        reason: 'Solar thermal lift window',
+        isAdopted: true
+      },
+      {
+        id: '4',
         timeSlot: '19:00 - 20:00',
         activityName: 'Evening Frying',
         defaultHabit: 'Unvented frying',
@@ -121,41 +154,31 @@ describe('impactCalculator tests', () => {
         exposureReductionPercentage: 50,
         emissionReductionGramsCO2: 200,
         reason: 'Indoor VOCs',
-        isAdopted: false // Not adopted
+        isAdopted: true
       }
     ];
 
     const outdoorPM25 = 200;
-    const impact = calculateTotalImpact(mockActivities, outdoorPM25);
+    const impact4Adopted = calculateTotalImpact(mockActivities, outdoorPM25);
 
-    expect(impact.activeActionsCount).toBe(2);
-    expect(impact.co2EmissionsSavedKg).toBe(1.8);
-    expect(impact.totalPM25AvoidedMicrograms).toBeGreaterThan(0);
-    expect(impact.cigarettesEquivalenceSaved).toBeGreaterThan(0);
-  });
+    expect(impact4Adopted.activeActionsCount).toBe(4);
+    expect(impact4Adopted.co2EmissionsSavedKg).toBe(2.1);
+    expect(impact4Adopted.totalPM25AvoidedMicrograms).toBeGreaterThan(0);
+    expect(impact4Adopted.cigarettesEquivalenceSaved).toBeGreaterThan(0);
+    expect(impact4Adopted.healthRiskReductionSummary).toContain('Significant alveolar particulate defense');
 
-  it('handles edge cases: zero activities adopted and zero outdoor PM2.5', () => {
-    const mockActivities: ScheduledActivity[] = [
-      {
-        id: '1',
-        timeSlot: '07:00 - 08:00',
-        activityName: 'Test',
-        defaultHabit: 'Habit',
-        recommendedAlternative: 'Alt',
-        exposureReductionPercentage: 50,
-        emissionReductionGramsCO2: 100,
-        reason: 'Reason',
-        isAdopted: false
-      }
-    ];
+    // Test 2 adopted
+    const impact2Adopted = calculateTotalImpact(
+      mockActivities.map((a, i) => ({ ...a, isAdopted: i < 2 })),
+      outdoorPM25
+    );
+    expect(impact2Adopted.healthRiskReductionSummary).toContain('Moderate exposure shield');
 
-    const zeroAdoptedImpact = calculateTotalImpact(mockActivities, 150);
-    expect(zeroAdoptedImpact.activeActionsCount).toBe(0);
-    expect(zeroAdoptedImpact.totalPM25AvoidedMicrograms).toBe(0);
-    expect(zeroAdoptedImpact.cigarettesEquivalenceSaved).toBe(0);
-    expect(zeroAdoptedImpact.co2EmissionsSavedKg).toBe(0);
-
-    const zeroPollutionImpact = calculateTotalImpact(mockActivities.map(a => ({ ...a, isAdopted: true })), 0);
-    expect(zeroPollutionImpact.totalPM25AvoidedMicrograms).toBe(0);
+    // Test 0 adopted
+    const impact0Adopted = calculateTotalImpact(
+      mockActivities.map(a => ({ ...a, isAdopted: false })),
+      outdoorPM25
+    );
+    expect(impact0Adopted.healthRiskReductionSummary).toContain('Adopt more routines');
   });
 });

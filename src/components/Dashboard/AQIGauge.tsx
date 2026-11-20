@@ -8,12 +8,26 @@ interface AQIGaugeProps {
   cityData: CityAirData;
 }
 
+const GAUGE_RADIUS = 40;
+const GAUGE_CIRCUMFERENCE = 2 * Math.PI * GAUGE_RADIUS; // ~251.327
+const MAX_AQI_SCALE = 500;
+
+function getAQIStrokeClass(aqi: number): string {
+  if (aqi <= 50) return 'stroke-emerald-500';
+  if (aqi <= 100) return 'stroke-amber-400';
+  if (aqi <= 150) return 'stroke-orange-500';
+  if (aqi <= 200) return 'stroke-rose-500';
+  if (aqi <= 300) return 'stroke-purple-600';
+  return 'stroke-red-900';
+}
+
 export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
   const aqiStyle = getAQIColorBlindSafeClass(cityData.currentAQI);
   const cigaretteEq = calculateCigaretteEquivalence(cityData.pollutants.pm25);
 
   // Normalization percentage for gauge arc (0-500)
-  const percentage = Math.min(100, Math.round((cityData.currentAQI / 500) * 100));
+  const percentage = Math.min(100, Math.round((cityData.currentAQI / MAX_AQI_SCALE) * 100));
+  const strokeDashLength = ((percentage * GAUGE_CIRCUMFERENCE) / 100).toFixed(1);
 
   return (
     <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
@@ -49,7 +63,7 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
               <circle
                 cx="50"
                 cy="50"
-                r="40"
+                r={GAUGE_RADIUS}
                 className="stroke-slate-200 dark:stroke-slate-700"
                 strokeWidth="10"
                 fill="transparent"
@@ -58,16 +72,10 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
               <circle
                 cx="50"
                 cy="50"
-                r="40"
-                className={`${
-                  cityData.currentAQI <= 50 ? 'stroke-emerald-500' :
-                  cityData.currentAQI <= 100 ? 'stroke-amber-400' :
-                  cityData.currentAQI <= 150 ? 'stroke-orange-500' :
-                  cityData.currentAQI <= 200 ? 'stroke-rose-500' :
-                  cityData.currentAQI <= 300 ? 'stroke-purple-600' : 'stroke-red-900'
-                }`}
+                r={GAUGE_RADIUS}
+                className={getAQIStrokeClass(cityData.currentAQI)}
                 strokeWidth="10"
-                strokeDasharray={`${(percentage * 251.2) / 100} 251.2`}
+                strokeDasharray={`${strokeDashLength} ${GAUGE_CIRCUMFERENCE.toFixed(1)}`}
                 strokeLinecap="round"
                 fill="transparent"
               />
@@ -87,7 +95,7 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
 
           {/* Equivalence Pill */}
           <div className="mt-4 flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800/80 text-rose-800 dark:text-rose-200 text-xs font-semibold">
-            <Cigarette className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            <Cigarette className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" aria-hidden="true" />
             <span>
               Inhaling 24h outdoor air ≈ <strong>{cigaretteEq} cigarettes/day</strong>
             </span>
@@ -105,7 +113,7 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
               : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-900 dark:text-emerald-200'
           }`}>
             <div className="flex items-start gap-3">
-              <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+              <Layers className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" aria-hidden="true" />
               <div>
                 <h3 className="font-bold text-sm flex items-center gap-1.5">
                   Thermal Inversion Dynamics
@@ -151,10 +159,10 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
               <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">NO2</div>
               <div className="text-lg font-extrabold text-slate-900 dark:text-white">
-                {cityData.pollutants.no2} <span className="text-xs font-normal text-slate-500">µg/m³</span>
+                {cityData.pollutants.no2} <span className="text-xs font-normal text-slate-500">ppb</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Vehicular & gas combustion
+                Vehicle combustion
               </div>
             </div>
 
@@ -169,22 +177,22 @@ export const AQIGauge: React.FC<AQIGaugeProps> = ({ cityData }) => {
             </div>
 
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Temp / RH</div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Carbon Monoxide</div>
               <div className="text-lg font-extrabold text-slate-900 dark:text-white">
-                {cityData.temperatureC}°C <span className="text-xs font-normal text-slate-500">/ {cityData.humidityPercent}% RH</span>
+                {cityData.pollutants.co} <span className="text-xs font-normal text-slate-500">ppm</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Cold air locks moisture
+                Incomplete combustion
               </div>
             </div>
 
             <div className="p-3 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">Wind Speed</div>
+              <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mb-1">SO2</div>
               <div className="text-lg font-extrabold text-slate-900 dark:text-white">
-                {cityData.windSpeedKmh} <span className="text-xs font-normal text-slate-500">km/h</span>
+                {cityData.pollutants.so2} <span className="text-xs font-normal text-slate-500">ppb</span>
               </div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                Stagnant airflow
+                Industrial & coal
               </div>
             </div>
 

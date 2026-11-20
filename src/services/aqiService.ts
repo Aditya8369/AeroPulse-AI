@@ -1,10 +1,21 @@
 import { CITIES_DATA } from '../data/cities';
 import { AQICategory, CityAirData } from '../types/aqi';
 import { safeLocalStorageGet, safeLocalStorageSet } from '../utils/storage';
+import { DEFAULT_INVERSION_LIFT_WINDOW } from '../constants/scienceConstants';
 
 const CACHE_KEY_PREFIX = 'aeropulse_aqi_';
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 mins
+const CACHE_TTL_MS = 15 * 60 * 1000; // 15 mins cache TTL
 
+export interface InversionLiftWindowResult {
+  startHour: string;
+  endHour: string;
+  safestHour: string;
+  minPM25: number;
+}
+
+/**
+ * Maps raw US EPA AQI values to official health category classifications
+ */
 export function getAQICategory(aqi: number): AQICategory {
   if (aqi <= 50) return 'Good';
   if (aqi <= 100) return 'Moderate';
@@ -15,6 +26,9 @@ export function getAQICategory(aqi: number): AQICategory {
   return 'Severe+';
 }
 
+/**
+ * Retrieves city atmospheric telemetry with local caching
+ */
 export function getCityAirData(cityId: string): CityAirData {
   const cached = safeLocalStorageGet<CityAirData | null>(`${CACHE_KEY_PREFIX}${cityId}`, null);
   if (cached) {
@@ -26,6 +40,9 @@ export function getCityAirData(cityId: string): CityAirData {
   return fallback;
 }
 
+/**
+ * Updates telemetry data for a custom urban location
+ */
 export function updateCustomCityData(custom: Partial<CityAirData> & { cityId: string }): CityAirData {
   const base = CITIES_DATA[custom.cityId] || CITIES_DATA['delhi-ncr'];
   const updated: CityAirData = {
@@ -39,19 +56,17 @@ export function updateCustomCityData(custom: Partial<CityAirData> & { cityId: st
   return updated;
 }
 
-export function calculateInversionLiftTime(forecast: CityAirData['hourlyForecast']): {
-  startHour: string;
-  endHour: string;
-  safestHour: string;
-  minPM25: number;
-} {
+/**
+ * Calculates the solar thermal lift window from diurnal forecasts
+ */
+export function calculateInversionLiftTime(forecast: CityAirData['hourlyForecast']): InversionLiftWindowResult {
   const safeWindows = forecast.filter(f => f.isVentilationSafe);
   if (safeWindows.length === 0) {
     return {
-      startHour: '12:00 PM',
-      endHour: '02:00 PM',
-      safestHour: '01:00 PM',
-      minPM25: 150
+      startHour: DEFAULT_INVERSION_LIFT_WINDOW.startHour,
+      endHour: DEFAULT_INVERSION_LIFT_WINDOW.endHour,
+      safestHour: DEFAULT_INVERSION_LIFT_WINDOW.safestHour,
+      minPM25: DEFAULT_INVERSION_LIFT_WINDOW.fallbackMinPM25,
     };
   }
 

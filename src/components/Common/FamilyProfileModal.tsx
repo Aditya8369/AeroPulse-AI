@@ -1,6 +1,13 @@
 import React, { useEffect } from 'react';
 import { Users, X, Check } from 'lucide-react';
-import { UserFamilyProfile, VulnerabilityGroup } from '../../types/aqi';
+import { 
+  UserFamilyProfile, 
+  VulnerabilityGroup,
+  HousingType,
+  HeatingType,
+  CookingFuel,
+  CommuteMode
+} from '../../types/aqi';
 
 interface FamilyProfileModalProps {
   isOpen: boolean;
@@ -9,7 +16,7 @@ interface FamilyProfileModalProps {
   onSaveProfile: (profile: UserFamilyProfile) => void;
 }
 
-const ALL_VULNERABILITY_GROUPS: VulnerabilityGroup[] = [
+const ALL_VULNERABILITY_GROUPS: readonly VulnerabilityGroup[] = [
   'Infant & Toddler (0-4)',
   'School-Age Child (5-17)',
   'Elderly (65+)',
@@ -18,7 +25,38 @@ const ALL_VULNERABILITY_GROUPS: VulnerabilityGroup[] = [
   'Pregnant',
   'Active Outdoor Commuter',
   'Pet Owner'
-];
+] as const;
+
+const HOUSING_OPTIONS: readonly { value: HousingType; label: string }[] = [
+  { value: 'Apartment', label: 'Apartment / Flat' },
+  { value: 'Independent House', label: 'Independent Multi-Story House' },
+  { value: 'Basement', label: 'Ground Floor / Basement' },
+  { value: 'High-Rise (Floor 10+)', label: 'High-Rise (Floor 10+)' },
+] as const;
+
+const HEATING_OPTIONS: readonly { value: HeatingType; label: string }[] = [
+  { value: 'Electric Heat Pump', label: 'Electric Heat Pump / AC Reverse' },
+  { value: 'Radiator (Hydronic)', label: 'Closed Hydronic Radiator' },
+  { value: 'Open Coil Space Heater', label: 'Electric Resistance Coil' },
+  { value: 'Gas / Kerosene Heater', label: 'Unvented Gas / Kerosene Heater' },
+  { value: 'Biomass / Wood Stove', label: 'Biomass Fireplace / Chulha' },
+] as const;
+
+const COOKING_OPTIONS: readonly { value: CookingFuel; label: string }[] = [
+  { value: 'Induction / Electric', label: 'Induction Cooktop (Zero NO2)' },
+  { value: 'Piped Natural Gas', label: 'Piped Natural Gas (PNG)' },
+  { value: 'LPG Cylinder', label: 'LPG Cylinder' },
+  { value: 'Solid Fuel / Coal', label: 'Solid Biomass / Wood / Coal' },
+] as const;
+
+const COMMUTE_OPTIONS: readonly { value: CommuteMode; label: string }[] = [
+  { value: 'Metro / Train', label: 'Electric Metro / Rail (Filtered)' },
+  { value: 'Bus', label: 'Public Transit Bus' },
+  { value: 'Gas/Diesel Car', label: 'Gas/Diesel Car (Cabin Recirculation)' },
+  { value: 'Two-Wheeler (Motorcycle/Scooter)', label: 'Motorcycle / Scooter (Direct Inversion Inhalation)' },
+  { value: 'Bicycle / Walking', label: 'Walking / Cycling' },
+  { value: 'Work from Home', label: 'Work from Home (Remote)' },
+] as const;
 
 export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
   isOpen,
@@ -46,11 +84,13 @@ export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
   if (!isOpen) return null;
 
   const toggleGroup = (group: VulnerabilityGroup) => {
-    const exists = draft.householdMembers.includes(group);
-    const updated = exists
-      ? draft.householdMembers.filter(g => g !== group)
-      : [...draft.householdMembers, group];
-    setDraft({ ...draft, householdMembers: updated });
+    setDraft(prev => {
+      const exists = prev.householdMembers.includes(group);
+      const updated = exists
+        ? prev.householdMembers.filter(g => g !== group)
+        : [...prev.householdMembers, group];
+      return { ...prev, householdMembers: updated };
+    });
   };
 
   const handleSave = () => {
@@ -122,13 +162,12 @@ export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
             <select
               id="housing-type-select"
               value={draft.housingType}
-              onChange={(e) => setDraft({ ...draft, housingType: e.target.value as UserFamilyProfile['housingType'] })}
+              onChange={(e) => setDraft(prev => ({ ...prev, housingType: e.target.value as HousingType }))}
               className="w-full text-xs p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              <option value="Apartment">Apartment / Flat</option>
-              <option value="Independent House">Independent Multi-Story House</option>
-              <option value="Basement">Ground Floor / Basement</option>
-              <option value="High-Rise (Floor 10+)">High-Rise (Floor 10+)</option>
+              {HOUSING_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
 
@@ -139,14 +178,12 @@ export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
             <select
               id="heating-type-select"
               value={draft.heatingType}
-              onChange={(e) => setDraft({ ...draft, heatingType: e.target.value as UserFamilyProfile['heatingType'] })}
+              onChange={(e) => setDraft(prev => ({ ...prev, heatingType: e.target.value as HeatingType }))}
               className="w-full text-xs p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              <option value="Electric Heat Pump">Electric Heat Pump / AC Reverse</option>
-              <option value="Radiator (Hydronic)">Closed Hydronic Radiator</option>
-              <option value="Open Coil Space Heater">Electric Resistance Coil</option>
-              <option value="Gas / Kerosene Heater">Unvented Gas / Kerosene Heater</option>
-              <option value="Biomass / Wood Stove">Biomass Fireplace / Chulha</option>
+              {HEATING_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
 
@@ -157,13 +194,12 @@ export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
             <select
               id="cooking-fuel-select"
               value={draft.cookingFuel}
-              onChange={(e) => setDraft({ ...draft, cookingFuel: e.target.value as UserFamilyProfile['cookingFuel'] })}
+              onChange={(e) => setDraft(prev => ({ ...prev, cookingFuel: e.target.value as CookingFuel }))}
               className="w-full text-xs p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              <option value="Induction / Electric">Induction Cooktop (Zero NO2)</option>
-              <option value="Piped Natural Gas">Piped Natural Gas (PNG)</option>
-              <option value="LPG Cylinder">LPG Cylinder</option>
-              <option value="Solid Fuel / Coal">Solid Biomass / Wood / Coal</option>
+              {COOKING_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
 
@@ -174,15 +210,12 @@ export const FamilyProfileModal: React.FC<FamilyProfileModalProps> = ({
             <select
               id="commute-mode-select"
               value={draft.commuteMode}
-              onChange={(e) => setDraft({ ...draft, commuteMode: e.target.value as UserFamilyProfile['commuteMode'] })}
+              onChange={(e) => setDraft(prev => ({ ...prev, commuteMode: e.target.value as CommuteMode }))}
               className="w-full text-xs p-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
-              <option value="Metro / Train">Electric Metro / Rail (Filtered)</option>
-              <option value="Bus">Public Transit Bus</option>
-              <option value="Gas/Diesel Car">Gas/Diesel Car (Cabin Recirculation)</option>
-              <option value="Two-Wheeler (Motorcycle/Scooter)">Motorcycle / Scooter (Direct Inversion Inhalation)</option>
-              <option value="Bicycle / Walking">Walking / Cycling</option>
-              <option value="Work from Home">Work from Home (Remote)</option>
+              {COMMUTE_OPTIONS.map(opt => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
             </select>
           </div>
         </div>
