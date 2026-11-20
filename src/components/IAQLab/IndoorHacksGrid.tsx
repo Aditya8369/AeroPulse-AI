@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -12,31 +12,42 @@ export const IndoorHacksGrid: React.FC = () => {
 
   const categories = ['All', 'DIY Filter', 'Ventilation', 'Cooking', 'Humidity', 'Plants', 'Sealing'];
 
-  const filteredHacks = selectedCategory === 'All'
-    ? INDOOR_AIR_HACKS
-    : INDOOR_AIR_HACKS.filter(h => h.category === selectedCategory);
+  const filteredHacks = useMemo(() => {
+    return selectedCategory === 'All'
+      ? INDOOR_AIR_HACKS
+      : INDOOR_AIR_HACKS.filter(h => h.category === selectedCategory);
+  }, [selectedCategory]);
 
   return (
     <div className="space-y-6">
       
       {/* Category Filter Chips */}
-      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+      <div 
+        className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1"
+        role="group"
+        aria-label="Filter indoor air quality hacks by category"
+      >
         <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
           Filter Hacks:
         </span>
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer ${
-              selectedCategory === cat
-                ? 'bg-sky-600 text-white shadow-sm'
-                : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
+        {categories.map((cat) => {
+          const isSelected = selectedCategory === cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              onClick={() => setSelectedCategory(cat)}
+              aria-pressed={isSelected}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors cursor-pointer focus:outline-none focus:ring-2 focus:ring-sky-500 ${
+                isSelected
+                  ? 'bg-sky-600 text-white shadow-sm'
+                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              {cat}
+            </button>
+          );
+        })}
       </div>
 
       {/* Grid of Hacks */}
@@ -76,9 +87,10 @@ export const IndoorHacksGrid: React.FC = () => {
                 </div>
 
                 <button
+                  type="button"
                   onClick={() => setExpandedHackId(isExpanded ? null : hack.id)}
                   aria-expanded={isExpanded}
-                  className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0 p-1"
+                  className="text-xs font-bold text-sky-600 dark:text-sky-400 hover:underline shrink-0 p-1 focus:outline-none focus:ring-1 focus:ring-sky-500"
                 >
                   {isExpanded ? 'Collapse ▲' : 'Details ▼'}
                 </button>
@@ -90,7 +102,7 @@ export const IndoorHacksGrid: React.FC = () => {
 
               {/* Expanded Deep Details */}
               {isExpanded && (
-                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3.5 text-xs">
+                <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3.5 text-xs animate-fade-in">
                   
                   {/* Detailed Steps */}
                   <div>
@@ -100,7 +112,7 @@ export const IndoorHacksGrid: React.FC = () => {
                     <div className="space-y-1.5 pl-1">
                       {hack.detailedSteps.map((step, idx) => (
                         <div key={idx} className="flex items-start gap-2">
-                          <CheckCircle className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" />
+                          <CheckCircle className="w-3.5 h-3.5 text-sky-500 shrink-0 mt-0.5" aria-hidden="true" />
                           <span className="text-slate-700 dark:text-slate-300">{step}</span>
                         </div>
                       ))}
@@ -119,7 +131,7 @@ export const IndoorHacksGrid: React.FC = () => {
 
                   {/* Scientific Citation */}
                   <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 flex items-start gap-2">
-                    <FlaskConical className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                    <FlaskConical className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" aria-hidden="true" />
                     <div>
                       <span className="font-bold text-[10px] uppercase tracking-wider block text-slate-500">
                         Peer-Reviewed Evidence:
@@ -131,7 +143,7 @@ export const IndoorHacksGrid: React.FC = () => {
                   {/* Warning */}
                   {hack.warningNote && (
                     <div className="p-2 rounded-lg bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-200 flex items-center gap-2">
-                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                      <AlertTriangle className="w-3.5 h-3.5 text-rose-600 shrink-0" aria-hidden="true" />
                       <span>{hack.warningNote}</span>
                     </div>
                   )}

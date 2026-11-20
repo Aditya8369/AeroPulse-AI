@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Send, Bot, User, Sparkles, BookOpen, AlertCircle, Wrench, Loader2 } from 'lucide-react';
 import { CityAirData, UserFamilyProfile } from '../../types/aqi';
 import { ChatMessage, QuickPrompt } from '../../types/chat';
+import { TabId } from '../Navigation';
 import { askAeroPulseAssistant } from '../../services/aiService';
 import { announceToScreenReader } from '../../utils/a11y';
 
@@ -9,7 +10,7 @@ interface ChatInterfaceProps {
   cityData: CityAirData;
   profile: UserFamilyProfile;
   apiKey: string;
-  onNavigateTab: (tab: any) => void;
+  onNavigateTab: (tab: TabId) => void;
   onOpenCalculator: () => void;
 }
 
@@ -46,10 +47,55 @@ const QUICK_PROMPTS: QuickPrompt[] = [
     id: 'qp-cigs',
     icon: '🚬',
     title: 'Cigarette Equivalence',
-    prompt: 'Explain the Berkeley Earth cigarette equivalence of today\'s PM2.5 level in my city and how much my health benefits from indoor filtration.',
+    prompt: "Explain the Berkeley Earth cigarette equivalence of today's PM2.5 level in my city and how much my health benefits from indoor filtration.",
     category: 'SCIENCE'
   }
 ];
+
+/**
+ * Safely parses inline markdown (bold, italic, inline code) into React nodes
+ * without using dangerous inner HTML.
+ */
+function renderInlineMarkdown(text: string): React.ReactNode {
+  // Regex tokenizes **bold**, *italic*, and `code`
+  const parts: React.ReactNode[] = [];
+  const regex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = regex.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(text.substring(lastIndex, match.index));
+    }
+    const token = match[0];
+    if (token.startsWith('**') && token.endsWith('**')) {
+      parts.push(
+        <strong key={`b-${match.index}`} className="font-bold text-slate-900 dark:text-white">
+          {token.slice(2, -2)}
+        </strong>
+      );
+    } else if (token.startsWith('*') && token.endsWith('*')) {
+      parts.push(
+        <em key={`i-${match.index}`} className="italic">
+          {token.slice(1, -1)}
+        </em>
+      );
+    } else if (token.startsWith('`') && token.endsWith('`')) {
+      parts.push(
+        <code key={`c-${match.index}`} className="px-1 py-0.5 rounded bg-slate-200 dark:bg-slate-700 font-mono text-[11px]">
+          {token.slice(1, -1)}
+        </code>
+      );
+    }
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+
+  return parts.length > 0 ? parts : text;
+}
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({
   cityData,
@@ -79,7 +125,7 @@ Pick a quick question below or ask me anything!`,
       ],
       suggestedActions: [
         { label: 'Calculate DIY Filter Size', actionType: 'OPEN_CALCULATOR', payload: 'CR_BOX' },
-        { label: 'View Today\'s Inversion Window', actionType: 'NAVIGATE', payload: 'DASHBOARD' }
+        { label: "View Today's Inversion Window", actionType: 'NAVIGATE', payload: 'DASHBOARD' }
       ]
     }
   ]);
@@ -126,9 +172,9 @@ Pick a quick question below or ask me anything!`,
 
       setMessages(prev => [...prev, response]);
       announceToScreenReader('AeroPulse Copilot responded.');
-    } catch (err: any) {
-      console.error(err);
-      setErrorMsg(err?.message || 'Failed to generate response. Please try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to generate response. Please try again.';
+      setErrorMsg(message);
     } finally {
       setIsLoading(false);
     }
@@ -138,7 +184,7 @@ Pick a quick question below or ask me anything!`,
     if (action.actionType === 'OPEN_CALCULATOR') {
       onOpenCalculator();
     } else if (action.actionType === 'NAVIGATE') {
-      onNavigateTab(action.payload);
+      onNavigateTab(action.payload as TabId);
     } else if (action.actionType === 'PROMPT') {
       handleSendMessage(action.payload);
     }
@@ -151,7 +197,7 @@ Pick a quick question below or ask me anything!`,
       <div className="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="p-2 rounded-xl bg-gradient-to-tr from-sky-600 to-cyan-500 text-white shadow-sm">
-            <Bot className="w-5 h-5" />
+            <Bot className="w-5 h-5" aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-bold text-sm sm:text-base text-slate-900 dark:text-white flex items-center gap-2">
@@ -167,10 +213,11 @@ Pick a quick question below or ask me anything!`,
         </div>
 
         <button
+          type="button"
           onClick={onOpenCalculator}
-          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500"
         >
-          <Wrench className="w-3.5 h-3.5 text-sky-600" />
+          <Wrench className="w-3.5 h-3.5 text-sky-600" aria-hidden="true" />
           CADR Calculator
         </button>
       </div>
@@ -194,7 +241,7 @@ Pick a quick question below or ask me anything!`,
                   ? 'bg-sky-600 text-white' 
                   : 'bg-slate-800 text-cyan-400 dark:bg-cyan-950 dark:text-cyan-300 ring-1 ring-cyan-500/30'
               }`}>
-                {isUser ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                {isUser ? <User className="w-4 h-4" aria-hidden="true" /> : <Bot className="w-4 h-4" aria-hidden="true" />}
               </div>
 
               {/* Message Content Container */}
@@ -210,16 +257,24 @@ Pick a quick question below or ask me anything!`,
                     {msg.content.split('\n\n').map((paragraph, idx) => {
                       // Check for headers
                       if (paragraph.startsWith('### ')) {
-                        return <h4 key={idx} className="font-extrabold text-sm sm:text-base text-sky-700 dark:text-sky-300 mt-2">{paragraph.replace('### ', '')}</h4>;
+                        return (
+                          <h4 key={idx} className="font-extrabold text-sm sm:text-base text-sky-700 dark:text-sky-300 mt-2">
+                            {renderInlineMarkdown(paragraph.replace('### ', ''))}
+                          </h4>
+                        );
                       }
                       if (paragraph.startsWith('## ')) {
-                        return <h3 key={idx} className="font-extrabold text-base text-slate-900 dark:text-white mt-1">{paragraph.replace('## ', '')}</h3>;
+                        return (
+                          <h3 key={idx} className="font-extrabold text-base text-slate-900 dark:text-white mt-1">
+                            {renderInlineMarkdown(paragraph.replace('## ', ''))}
+                          </h3>
+                        );
                       }
                       // Check for blockquotes
                       if (paragraph.startsWith('> ')) {
                         return (
                           <blockquote key={idx} className="border-l-4 border-amber-500 bg-amber-500/10 p-2.5 rounded-r text-xs text-amber-900 dark:text-amber-200 my-2">
-                            {paragraph.replace('> ', '')}
+                            {renderInlineMarkdown(paragraph.replace('> ', ''))}
                           </blockquote>
                         );
                       }
@@ -229,13 +284,17 @@ Pick a quick question below or ask me anything!`,
                           <ul key={idx} className="list-disc pl-5 space-y-1">
                             {paragraph.split('\n- ').map((item, i) => (
                               <li key={i} className="text-slate-700 dark:text-slate-300">
-                                {item.replace(/^- /, '')}
+                                {renderInlineMarkdown(item.replace(/^- /, ''))}
                               </li>
                             ))}
                           </ul>
                         );
                       }
-                      return <p key={idx} className="whitespace-pre-line">{paragraph}</p>;
+                      return (
+                        <p key={idx} className="whitespace-pre-line">
+                          {renderInlineMarkdown(paragraph)}
+                        </p>
+                      );
                     })}
                   </div>
                 </div>
@@ -246,10 +305,11 @@ Pick a quick question below or ask me anything!`,
                     {msg.suggestedActions.map((action, i) => (
                       <button
                         key={i}
+                        type="button"
                         onClick={() => handleActionClick(action)}
-                        className="text-xs font-semibold px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800 transition-colors inline-flex items-center gap-1 shadow-sm"
+                        className="text-xs font-semibold px-3 py-1 rounded-full bg-sky-50 dark:bg-sky-950/60 hover:bg-sky-100 dark:hover:bg-sky-900 text-sky-700 dark:text-sky-300 border border-sky-300 dark:border-sky-800 transition-colors inline-flex items-center gap-1 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                       >
-                        <Sparkles className="w-3 h-3 text-sky-500" />
+                        <Sparkles className="w-3 h-3 text-sky-500" aria-hidden="true" />
                         {action.label}
                       </button>
                     ))}
@@ -259,7 +319,7 @@ Pick a quick question below or ask me anything!`,
                 {/* Sources Attribution */}
                 {msg.sources && msg.sources.length > 0 && (
                   <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400 pt-1">
-                    <BookOpen className="w-3 h-3 text-slate-400" />
+                    <BookOpen className="w-3 h-3 text-slate-400" aria-hidden="true" />
                     <span>Scientific Sources:</span>
                     {msg.sources.map((src, i) => (
                       <span key={i} className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-mono">
@@ -283,10 +343,10 @@ Pick a quick question below or ask me anything!`,
         {isLoading && (
           <div className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-slate-800 text-cyan-400 flex items-center justify-center shrink-0">
-              <Bot className="w-4 h-4 animate-spin" />
+              <Bot className="w-4 h-4 animate-spin" aria-hidden="true" />
             </div>
             <div className="bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 rounded-2xl rounded-tl-none flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
-              <Loader2 className="w-4 h-4 animate-spin text-sky-500" />
+              <Loader2 className="w-4 h-4 animate-spin text-sky-500" aria-hidden="true" />
               <span>Analyzing atmospheric boundary conditions and formulating scientific plan...</span>
             </div>
           </div>
@@ -295,7 +355,7 @@ Pick a quick question below or ask me anything!`,
         {/* Error notification */}
         {errorMsg && (
           <div className="p-3 rounded-xl bg-red-50 dark:bg-red-950/60 border border-red-300 dark:border-red-800 text-red-800 dark:text-red-200 text-xs flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" aria-hidden="true" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -312,8 +372,9 @@ Pick a quick question below or ask me anything!`,
           {QUICK_PROMPTS.map((qp) => (
             <button
               key={qp.id}
+              type="button"
               onClick={() => handleSendMessage(qp.prompt)}
-              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
+              className="text-xs font-medium px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 hover:bg-sky-50 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 whitespace-nowrap transition-colors flex items-center gap-1.5 shrink-0 shadow-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
             >
               <span>{qp.icon}</span>
               <span>{qp.title}</span>
@@ -345,9 +406,9 @@ Pick a quick question below or ask me anything!`,
             type="submit"
             disabled={!input.trim() || isLoading}
             aria-label="Send message"
-            className="p-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-sky-600/30 transition-all cursor-pointer flex items-center justify-center shrink-0"
+            className="p-3 rounded-xl bg-sky-600 hover:bg-sky-700 text-white font-semibold disabled:opacity-40 disabled:cursor-not-allowed shadow-md shadow-sky-600/30 transition-all cursor-pointer flex items-center justify-center shrink-0 focus:outline-none focus:ring-2 focus:ring-sky-500"
           >
-            <Send className="w-4 h-4" />
+            <Send className="w-4 h-4" aria-hidden="true" />
           </button>
         </form>
       </div>

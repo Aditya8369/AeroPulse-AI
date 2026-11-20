@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Header } from './components/Header';
 import { Navigation, TabId } from './components/Navigation';
 import { AQIGauge } from './components/Dashboard/AQIGauge';
@@ -91,42 +91,62 @@ export const App: React.FC = () => {
   }, [highContrast]);
 
   // Update city data when city ID changes
-  const handleSelectCity = (cityId: string) => {
+  const handleSelectCity = useCallback((cityId: string) => {
     setCurrentCityId(cityId);
     safeLocalStorageSet('aeropulse_city_id', cityId);
     const data = getCityAirData(cityId);
     setCurrentCity(data);
     announceToScreenReader(`Switched location to ${data.cityName}. Current AQI is ${data.currentAQI}.`);
-  };
+  }, []);
 
-  const handleToggleActivity = (id: string) => {
-    const updated = activities.map(act =>
-      act.id === id ? { ...act, isAdopted: !act.isAdopted } : act
-    );
-    setActivities(updated);
-    safeLocalStorageSet('aeropulse_activities', updated);
+  const handleToggleActivity = useCallback((id: string) => {
+    setActivities(prev => {
+      const updated = prev.map(act =>
+        act.id === id ? { ...act, isAdopted: !act.isAdopted } : act
+      );
+      safeLocalStorageSet('aeropulse_activities', updated);
+      return updated;
+    });
     announceToScreenReader('Updated routine adoption. Impact scores recalculated.');
-  };
+  }, []);
 
-  const handleSaveProfile = (newProfile: UserFamilyProfile) => {
+  const handleSaveProfile = useCallback((newProfile: UserFamilyProfile) => {
     setProfile(newProfile);
     safeLocalStorageSet('aeropulse_profile', newProfile);
     announceToScreenReader('Household vulnerability profile saved.');
-  };
+  }, []);
 
-  const handleSaveApiKey = (key: string) => {
+  const handleSaveApiKey = useCallback((key: string) => {
     setApiKey(key);
     safeLocalStorageSet('aeropulse_gemini_key', key);
     announceToScreenReader('Gemini API key settings updated.');
-  };
+  }, []);
 
-  // Live impact calculation
-  const impactMetrics = calculateTotalImpact(activities, currentCity.pollutants.pm25);
-  const adoptedRoutinesCount = activities.filter(a => a.isAdopted).length;
+  // Live impact calculations memoized for efficiency
+  const impactMetrics = useMemo(() => {
+    return calculateTotalImpact(activities, currentCity.pollutants.pm25);
+  }, [activities, currentCity.pollutants.pm25]);
+
+  const adoptedRoutinesCount = useMemo(() => {
+    return activities.filter(a => a.isAdopted).length;
+  }, [activities]);
+
+  const handleTabChange = useCallback((tab: TabId) => {
+    setActiveTab(tab);
+    announceToScreenReader(`Switched to tab: ${tab}`);
+  }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors">
       
+      {/* Skip to Main Content Link for Keyboard and Screen-Reader Users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 z-50 px-4 py-2 bg-sky-600 text-white font-bold rounded-lg shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500"
+      >
+        Skip to main content
+      </a>
+
       {/* Header */}
       <Header
         currentCity={currentCity}
@@ -136,27 +156,28 @@ export const App: React.FC = () => {
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         hasCustomKey={apiKey.trim().length > 10}
         highContrast={highContrast}
-        onToggleHighContrast={() => setHighContrast(!highContrast)}
+        onToggleHighContrast={() => setHighContrast(prev => !prev)}
         darkMode={darkMode}
-        onToggleDarkMode={() => setDarkMode(!darkMode)}
+        onToggleDarkMode={() => setDarkMode(prev => !prev)}
       />
 
       {/* Navigation */}
       <Navigation
         activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          announceToScreenReader(`Switched to tab: ${tab}`);
-        }}
+        onTabChange={handleTabChange}
         activeRoutinesCount={adoptedRoutinesCount}
       />
 
       {/* Main Tab Panels */}
-      <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <main 
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 sm:py-8 focus:outline-none"
+      >
         
         {/* DASHBOARD TAB */}
         {activeTab === 'DASHBOARD' && (
-          <div className="space-y-6 animate-fade-in" id="panel-DASHBOARD" role="tabpanel">
+          <div className="space-y-6 animate-fade-in" id="panel-DASHBOARD" role="tabpanel" aria-labelledby="tab-DASHBOARD">
             <AQIGauge cityData={currentCity} />
             <ThermalInversionGraph cityData={currentCity} />
             <VulnerabilityAlert
@@ -169,7 +190,7 @@ export const App: React.FC = () => {
 
         {/* COPILOT TAB */}
         {activeTab === 'COPILOT' && (
-          <div className="animate-fade-in" id="panel-COPILOT" role="tabpanel">
+          <div className="animate-fade-in" id="panel-COPILOT" role="tabpanel" aria-labelledby="tab-COPILOT">
             <ChatInterface
               cityData={currentCity}
               profile={profile}
@@ -182,7 +203,7 @@ export const App: React.FC = () => {
 
         {/* ROUTINES TAB */}
         {activeTab === 'ROUTINES' && (
-          <div className="animate-fade-in" id="panel-ROUTINES" role="tabpanel">
+          <div className="animate-fade-in" id="panel-ROUTINES" role="tabpanel" aria-labelledby="tab-ROUTINES">
             <RoutineScheduler
               activities={activities}
               onToggleActivity={handleToggleActivity}
@@ -194,7 +215,7 @@ export const App: React.FC = () => {
 
         {/* IAQ LAB TAB */}
         {activeTab === 'IAQ_LAB' && (
-          <div className="space-y-8 animate-fade-in" id="panel-IAQ_LAB" role="tabpanel">
+          <div className="space-y-8 animate-fade-in" id="panel-IAQ_LAB" role="tabpanel" aria-labelledby="tab-IAQ_LAB">
             <CorsiRosenthalCalculator />
             <IndoorHacksGrid />
           </div>
@@ -202,7 +223,7 @@ export const App: React.FC = () => {
 
         {/* IMPACT TAB */}
         {activeTab === 'IMPACT' && (
-          <div className="animate-fade-in" id="panel-IMPACT" role="tabpanel">
+          <div className="animate-fade-in" id="panel-IMPACT" role="tabpanel" aria-labelledby="tab-IMPACT">
             <PersonalImpactMetrics
               metrics={impactMetrics}
               cityData={currentCity}
@@ -212,7 +233,7 @@ export const App: React.FC = () => {
 
         {/* COMMUNITY TAB */}
         {activeTab === 'COMMUNITY' && (
-          <div className="animate-fade-in" id="panel-COMMUNITY" role="tabpanel">
+          <div className="animate-fade-in" id="panel-COMMUNITY" role="tabpanel" aria-labelledby="tab-COMMUNITY">
             <CommunityActionHub cityData={currentCity} />
           </div>
         )}
@@ -252,15 +273,17 @@ export const App: React.FC = () => {
             <span>WCAG 2.1 AA Compliant</span>
             <span>&bull;</span>
             <button
+              type="button"
               onClick={() => setIsProfileModalOpen(true)}
-              className="hover:underline text-sky-600 dark:text-sky-400"
+              className="hover:underline text-sky-600 dark:text-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               Profile Settings
             </button>
             <span>&bull;</span>
             <button
+              type="button"
               onClick={() => setIsApiKeyModalOpen(true)}
-              className="hover:underline text-sky-600 dark:text-sky-400"
+              className="hover:underline text-sky-600 dark:text-sky-400 focus:outline-none focus:ring-1 focus:ring-sky-500"
             >
               API Key
             </button>

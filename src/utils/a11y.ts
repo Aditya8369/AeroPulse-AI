@@ -2,7 +2,7 @@
  * Accessibility (a11y) utilities for WCAG 2.1 AA compliance
  */
 
-export function announceToScreenReader(message: string, politeness: 'polite' | 'assertive' = 'polite') {
+export function announceToScreenReader(message: string, politeness: 'polite' | 'assertive' = 'polite'): void {
   if (typeof document === 'undefined') return;
 
   let announcer = document.getElementById('a11y-live-announcer');
@@ -11,6 +11,7 @@ export function announceToScreenReader(message: string, politeness: 'polite' | '
     announcer.id = 'a11y-live-announcer';
     announcer.setAttribute('aria-live', politeness);
     announcer.setAttribute('aria-atomic', 'true');
+    announcer.className = 'sr-only';
     announcer.style.position = 'absolute';
     announcer.style.left = '-9999px';
     announcer.style.width = '1px';
@@ -21,7 +22,7 @@ export function announceToScreenReader(message: string, politeness: 'polite' | '
     announcer.setAttribute('aria-live', politeness);
   }
 
-  // Clear and update to ensure screen reader picks up identical repeats
+  // Clear and update with microtask to ensure screen readers announce repeating updates
   announcer.textContent = '';
   setTimeout(() => {
     if (announcer) {
@@ -30,12 +31,14 @@ export function announceToScreenReader(message: string, politeness: 'polite' | '
   }, 50);
 }
 
-export function getAQIColorBlindSafeClass(aqi: number): {
+export interface AQIColorClass {
   badgeBg: string;
   badgeText: string;
   borderColor: string;
   label: string;
-} {
+}
+
+export function getAQIColorBlindSafeClass(aqi: number): AQIColorClass {
   if (aqi <= 50) {
     return {
       badgeBg: 'bg-emerald-600 dark:bg-emerald-700',
@@ -82,4 +85,37 @@ export function getAQIColorBlindSafeClass(aqi: number): {
     borderColor: 'border-red-600',
     label: 'Hazardous / Severe+ (300+)'
   };
+}
+
+/**
+ * Handles ArrowLeft / ArrowRight / Home / End keyboard navigation for WAI-ARIA tablists
+ */
+export function handleTabKeyNavigation(
+  e: React.KeyboardEvent,
+  tabs: string[],
+  activeTab: string,
+  onSelectTab: (tabId: string) => void
+): void {
+  const currentIndex = tabs.indexOf(activeTab);
+  if (currentIndex === -1) return;
+
+  let nextIndex: number | null = null;
+  if (e.key === 'ArrowRight') {
+    nextIndex = (currentIndex + 1) % tabs.length;
+  } else if (e.key === 'ArrowLeft') {
+    nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+  } else if (e.key === 'Home') {
+    nextIndex = 0;
+  } else if (e.key === 'End') {
+    nextIndex = tabs.length - 1;
+  }
+
+  if (nextIndex !== null) {
+    e.preventDefault();
+    onSelectTab(tabs[nextIndex]);
+    const tabEl = document.getElementById(`tab-${tabs[nextIndex]}`);
+    if (tabEl) {
+      tabEl.focus();
+    }
+  }
 }

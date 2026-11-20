@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wind, ShieldAlert, Sun, Moon, Eye, Key, Users } from 'lucide-react';
+import { Wind, Sun, Moon, Eye, Key, Users } from 'lucide-react';
 import { CityAirData, UserFamilyProfile } from '../types/aqi';
 import { CITIES_DATA } from '../data/cities';
 
@@ -75,12 +75,13 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Profile Pill */}
             <button
+              type="button"
               onClick={onOpenProfile}
-              aria-label="Edit Household Profile"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
+              aria-label={`Household profile: ${profile.householdMembers.length} vulnerability cohorts configured`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500"
               title="Configure Household Profile & Vulnerability Cohorts"
             >
-              <Users className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
+              <Users className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" aria-hidden="true" />
               <span className="hidden md:inline">Profile</span>
               {profile.householdMembers.length > 0 && (
                 <span className="inline-flex items-center justify-center px-1.5 py-0.2 text-[10px] font-bold rounded-full bg-rose-500 text-white">
@@ -91,63 +92,50 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* API Key Modal Button */}
             <button
+              type="button"
               onClick={onOpenApiKeyModal}
-              aria-label="Configure Gemini API Key"
-              className={`p-2 rounded-lg text-xs font-medium border transition-colors ${
+              aria-label={hasCustomKey ? 'Gemini 1.5 Custom API Key Connected' : 'Configure Gemini API Key'}
+              className={`p-2 rounded-lg text-xs font-medium border transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                 hasCustomKey
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
                   : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
               }`}
-              title={hasCustomKey ? "Gemini API Connected" : "Connect Gemini Live Key (Optional)"}
+              title={hasCustomKey ? 'Gemini 1.5 Custom Key Connected' : 'Connect Gemini API Key'}
             >
-              <Key className="w-4 h-4" />
+              <Key className="w-4 h-4" aria-hidden="true" />
             </button>
 
-            {/* High Contrast Toggle (Accessibility) */}
+            {/* High Contrast Mode Toggle */}
             <button
+              type="button"
               onClick={onToggleHighContrast}
-              aria-label={highContrast ? "Disable High Contrast Mode" : "Enable High Contrast Mode"}
               aria-pressed={highContrast}
-              className={`p-2 rounded-lg border transition-colors ${
+              aria-label={highContrast ? 'Disable high contrast mode' : 'Enable high contrast mode'}
+              className={`p-2 rounded-lg text-xs border transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500 ${
                 highContrast
                   ? 'bg-amber-100 text-amber-900 border-amber-400 dark:bg-amber-950 dark:text-amber-200'
-                  : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-200 dark:border-slate-700'
+                  : 'bg-slate-100 text-slate-700 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
               }`}
-              title="WCAG High Contrast Toggle"
+              title="Toggle Colorblind & High Contrast Mode"
             >
-              <Eye className="w-4 h-4" />
+              <Eye className="w-4 h-4" aria-hidden="true" />
             </button>
 
             {/* Dark / Light Mode Toggle */}
             <button
+              type="button"
               onClick={onToggleDarkMode}
-              aria-label={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
-              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 transition-colors"
+              aria-pressed={darkMode}
+              aria-label={darkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+              className="p-2 rounded-lg text-xs bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-300 dark:border-slate-700 transition-colors focus:outline-none focus:ring-2 focus:ring-sky-500"
+              title="Toggle Light / Dark Theme"
             >
-              {darkMode ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-600" />}
+              {darkMode ? <Sun className="w-4 h-4 text-amber-400" aria-hidden="true" /> : <Moon className="w-4 h-4 text-slate-700" aria-hidden="true" />}
             </button>
 
           </div>
-        </div>
 
-        {/* Severe Inversion Alert Banner */}
-        {currentCity.inversionLayerActive && (
-          <div 
-            role="alert" 
-            aria-live="polite"
-            className="mb-3 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-700 dark:text-red-300 flex items-center justify-between text-xs sm:text-sm animate-fade-in"
-          >
-            <div className="flex items-center gap-2">
-              <ShieldAlert className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0 animate-bounce" />
-              <span>
-                <strong>Severe Winter Thermal Inversion Active:</strong> Ground boundary ceiling compressed to {currentCity.thermalInversionHeightMeters}m. Toxic emissions trapped near street level. Avoid early morning outdoor exercise.
-              </span>
-            </div>
-            <span className="hidden lg:inline-block font-mono text-xs bg-red-200/50 dark:bg-red-900/50 px-2 py-0.5 rounded">
-              Lid: {currentCity.thermalInversionHeightMeters}m
-            </span>
-          </div>
-        )}
+        </div>
       </div>
     </header>
   );
